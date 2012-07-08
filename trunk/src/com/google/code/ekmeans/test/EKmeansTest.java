@@ -20,12 +20,12 @@
 package com.google.code.ekmeans.test;
 
 import com.google.code.ekmeans.EKmeans;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
+import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Random;
 import javax.swing.*;
 
@@ -33,15 +33,16 @@ public class EKmeansTest {
 
     private static final int RESOLUTION = 300;
     private static final Random RANDOM = new Random(System.currentTimeMillis());
+    private JToolBar toolBar;
     private JTextField nTextField;
     private JTextField kTextField;
     private JCheckBox equalCheckBox;
     private JTextField debugTextField;
-    private JButton runButton;
     private JPanel canvaPanel;
     private JLabel statusBar;
-    private Color[] colors;
-    private EKmeans eKmeans;
+    private double[][] points = null;
+    private double[][] minmaxs = null;
+    private EKmeans eKmeans = null;
 
     public EKmeansTest() {
         JFrame frame = new JFrame();
@@ -53,15 +54,35 @@ public class EKmeansTest {
         contentPanel.setLayout(new BorderLayout());
         frame.setContentPane(contentPanel);
 
-        JToolBar toolBar = new JToolBar();
+        toolBar = new JToolBar();
         toolBar.setFloatable(false);
         contentPanel.add(toolBar, BorderLayout.NORTH);
+
+        JButton csvButton = new JButton();
+        csvButton.setAction(new AbstractAction(" CSV ") {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                csv();
+            }
+        });
+        toolBar.add(csvButton);
 
         JLabel nLabel = new JLabel("n:");
         toolBar.add(nLabel);
 
         nTextField = new JTextField("1000");
         toolBar.add(nTextField);
+
+        JButton randomButton = new JButton();
+        randomButton.setAction(new AbstractAction(" Random ") {
+
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                random();
+            }
+        });
+        toolBar.add(randomButton);
 
         JLabel kLabel = new JLabel("k:");
         toolBar.add(kLabel);
@@ -72,7 +93,7 @@ public class EKmeansTest {
         JLabel equalLabel = new JLabel("equal:");
         toolBar.add(equalLabel);
 
-        equalCheckBox = new JCheckBox(" ");
+        equalCheckBox = new JCheckBox("");
         toolBar.add(equalCheckBox);
 
         JLabel debugLabel = new JLabel("debug:");
@@ -81,7 +102,7 @@ public class EKmeansTest {
         debugTextField = new JTextField("0");
         toolBar.add(debugTextField);
 
-        runButton = new JButton();
+        JButton runButton = new JButton();
         runButton.setAction(new AbstractAction(" Start ") {
 
             @Override
@@ -107,109 +128,122 @@ public class EKmeansTest {
         frame.setVisible(true);
     }
 
-    private void paint(Graphics g, int width, int height) {
-        g.setColor(Color.WHITE);
-        g.fillRect(0, 0, width, height);
-        if (eKmeans == null) {
-            return;
-        }
-        float widthRatio = (float) width / (float) RESOLUTION;
-        float heightRatio = (float) height / (float) RESOLUTION;
-        double[][] centroids = eKmeans.getCentroids();
-        double[][] points = eKmeans.getPoints();
-        int[] assignments = eKmeans.getAssignments();
-        int[] counts = eKmeans.getCounts();
-        boolean[] changes = eKmeans.getChanges();
-        for (int i = 0; i < points.length; i++) {
-            int assignment = assignments[i];
-            if (assignment == -1) {
-                continue;
-            }
-            int cx = (int) (widthRatio * centroids[assignment][0]);
-            int cy = (int) (heightRatio * centroids[assignment][1]);
-            int px = (int) (widthRatio * points[i][0]);
-            int py = (int) (heightRatio * points[i][1]);
-            g.setColor(colors[assignment]);
-            g.drawRect(px - 2, py - 2, 4, 4);
-            g.drawLine(cx, cy, px, py);
-        }
-        g.setColor(Color.RED);
-        for (int i = 0; i < points.length; i++) {
-            int assignment = assignments[i];
-            if (assignment != -1) {
-                continue;
-            }
-            int px = (int) (widthRatio * points[i][0]);
-            int py = (int) (heightRatio * points[i][1]);
-            g.drawRect(px - 2, py - 2, 4, 4);
-        }
-        for (int i = 0; i < centroids.length; i++) {
-            int cx = (int) (widthRatio * centroids[i][0]);
-            int cy = (int) (heightRatio * centroids[i][1]);
-            g.setColor(Color.GREEN);
-            g.drawLine(cx, cy - 2, cx, cy + 2);
-            g.drawLine(cx - 2, cy, cx + 2, cy);
-            int count = counts[i];
-            if (changes[i]) {
-                g.setColor(Color.RED);
-            }
-            g.drawString(String.valueOf(count), cx, cy);
+    private void enableToolBar(boolean enabled) {
+        for (Component c : toolBar.getComponents()) {
+            c.setEnabled(enabled);
         }
     }
 
-    private void updateStatusBar(String status) {
-        statusBar.setText(" " + status);
+    private void csv() {
+        enableToolBar(false);
+        eKmeans = null;
+        try {
+            JFileChooser chooser = new JFileChooser();
+            int returnVal = chooser.showOpenDialog(toolBar);
+            if (returnVal != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+            minmaxs = new double[][]{
+                {Double.MAX_VALUE, Double.MAX_VALUE},
+                {Double.MIN_VALUE, Double.MIN_VALUE}
+            };
+            java.util.List points = new ArrayList();
+            BufferedReader reader = new BufferedReader(new FileReader(chooser.getSelectedFile()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] pointString = line.split(",");
+                double[] point = new double[2];
+                point[0] = Double.parseDouble(pointString[0].trim());
+                point[1] = Double.parseDouble(pointString[1].trim());
+                points.add(point);
+                if (point[0] < minmaxs[0][0]) {
+                    minmaxs[0][0] = point[0];
+                }
+                if (point[1] < minmaxs[0][1]) {
+                    minmaxs[0][1] = point[1];
+                }
+                if (point[0] > minmaxs[1][0]) {
+                    minmaxs[1][0] = point[0];
+                }
+                if (point[1] > minmaxs[1][1]) {
+                    minmaxs[1][1] = point[1];
+                }
+            }
+            reader.close();
+            this.points = (double[][]) points.toArray(new double[points.size()][]);
+            nTextField.setText(String.valueOf(this.points.length));
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        } finally {
+            canvaPanel.repaint();
+            enableToolBar(true);
+        }
     }
 
-    private static int nextInt(int n) {
-        return Math.abs(RANDOM.nextInt() % n);
+    private void random() {
+        enableToolBar(false);
+        eKmeans = null;
+        int n = Integer.parseInt(nTextField.getText());
+        points = new double[n][2];
+        minmaxs = new double[][]{
+            {Double.MAX_VALUE, Double.MAX_VALUE},
+            {Double.MIN_VALUE, Double.MIN_VALUE}
+        };
+        for (int i = 0; i < n; i++) {
+            points[i][0] = RANDOM.nextDouble();
+            points[i][1] = RANDOM.nextDouble();
+            if (points[i][0] < minmaxs[0][0]) {
+                minmaxs[0][0] = points[i][0];
+            }
+            if (points[i][1] < minmaxs[0][1]) {
+                minmaxs[0][1] = points[i][1];
+            }
+            if (points[i][0] > minmaxs[1][0]) {
+                minmaxs[1][0] = points[i][0];
+            }
+            if (points[i][1] > minmaxs[1][1]) {
+                minmaxs[1][1] = points[i][1];
+            }
+        }
+        canvaPanel.repaint();
+        enableToolBar(true);
     }
 
     private void start() {
+        if (points == null) {
+            random();
+        }
         new Thread(new Runnable() {
 
             @Override
             public void run() {
-                runButton.setEnabled(false);
+                enableToolBar(false);
                 try {
                     EKmeansTest.this.run();
                 } finally {
-                    runButton.setEnabled(true);
+                    enableToolBar(true);
                 }
             }
         }).start();
     }
 
     private void run() {
-        int n = Integer.parseInt(nTextField.getText());
         int k = Integer.parseInt(kTextField.getText());
         boolean equal = equalCheckBox.isSelected();
         final int debug = Integer.parseInt(debugTextField.getText());
-        colors = new Color[k];
-        for (int i = 0; i < k; i++) {
-            int c = i * (225 / k);
-            colors[i] = new Color(c, c, c);
-            //colors[i] = new Color(nextInt(255), nextInt(255), nextInt(255));
-        }
         double[][] centroids = new double[k][2];
         for (int i = 0; i < k; i++) {
-            centroids[i][0] = nextInt(RESOLUTION);
-            centroids[i][1] = nextInt(RESOLUTION);
-        }
-        double[][] points = new double[n][2];
-        for (int i = 0; i < n; i++) {
-            points[i][0] = nextInt(RESOLUTION);
-            points[i][1] = nextInt(RESOLUTION);
+            centroids[i][0] = minmaxs[0][0] + ((minmaxs[1][0] - minmaxs[0][0]) * RANDOM.nextDouble());
+            centroids[i][1] = minmaxs[0][1] + ((minmaxs[1][1] - minmaxs[0][1]) * RANDOM.nextDouble());
         }
         eKmeans = new EKmeans(centroids, points);
         eKmeans.setEqual(equal);
-        //eKmeans.setDistanceFunction(EKmeans.MANHATTAN_DISTANCE_FUNCTION);
         if (debug > 0) {
             eKmeans.setListener(new EKmeans.Listener() {
 
                 @Override
                 public void iteration(int iteration, int move) {
-                    updateStatusBar(MessageFormat.format("iteration {0} move {1}", iteration, move));
+                    statusBar.setText(MessageFormat.format("iteration {0} move {1}", iteration, move));
                     canvaPanel.repaint();
                     try {
                         Thread.sleep(debug);
@@ -222,8 +256,56 @@ public class EKmeansTest {
         long time = System.currentTimeMillis();
         eKmeans.run();
         time = System.currentTimeMillis() - time;
-        updateStatusBar(MessageFormat.format("EKmeans run in {0}ms", time));
+        statusBar.setText(MessageFormat.format("EKmeans run in {0}ms", time));
         canvaPanel.repaint();
+    }
+
+    private void paint(Graphics g, int width, int height) {
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, width, height);
+        if (minmaxs == null) {
+            return;
+        }
+        double widthRatio = (double) (width - 6) / (minmaxs[1][0] - minmaxs[0][0]);
+        double heightRatio = (double) (height - 6) / (minmaxs[1][1] - minmaxs[0][1]);
+        if (points == null) {
+            return;
+        }
+        g.setColor(Color.BLACK);
+        for (int i = 0; i < points.length; i++) {
+            int px = 3 + (int) (widthRatio * (points[i][0] - minmaxs[0][0]));
+            int py = 3 + (int) (heightRatio * (points[i][1] - minmaxs[0][1]));
+            g.drawRect(px - 2, py - 2, 4, 4);
+        }
+        if (eKmeans == null) {
+            return;
+        }
+        double[][] centroids = eKmeans.getCentroids();
+        int[] assignments = eKmeans.getAssignments();
+        int[] counts = eKmeans.getCounts();
+        int s = 225 / centroids.length;
+        for (int i = 0; i < points.length; i++) {
+            int assignment = assignments[i];
+            if (assignment == -1) {
+                continue;
+            }
+            int cx = 3 + (int) (widthRatio * (centroids[assignment][0] - minmaxs[0][0]));
+            int cy = 3 + (int) (heightRatio * (centroids[assignment][1] - minmaxs[0][1]));
+            int px = 3 + (int) (widthRatio * (points[i][0] - minmaxs[0][0]));
+            int py = 3 + (int) (heightRatio * (points[i][1] - minmaxs[0][1]));
+            int c = assignment * s;
+            g.setColor(new Color(c, c, c));
+            g.drawLine(cx, cy, px, py);
+        }
+        g.setColor(Color.GREEN);
+        for (int i = 0; i < centroids.length; i++) {
+            int cx = 3 + (int) (widthRatio * (centroids[i][0] - minmaxs[0][0]));
+            int cy = 3 + (int) (heightRatio * (centroids[i][1] - minmaxs[0][1]));
+            g.drawLine(cx, cy - 2, cx, cy + 2);
+            g.drawLine(cx - 2, cy, cx + 2, cy);
+            int count = counts[i];
+            g.drawString(String.valueOf(count), cx, cy);
+        }
     }
 
     public static void main(String[] args) {
