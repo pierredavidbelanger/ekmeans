@@ -23,9 +23,13 @@ import com.google.code.ekmeans.EKmeans;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Random;
 import javax.swing.*;
 
@@ -58,15 +62,23 @@ public class EKmeansTest {
         toolBar.setFloatable(false);
         contentPanel.add(toolBar, BorderLayout.NORTH);
 
-        JButton csvButton = new JButton();
-        csvButton.setAction(new AbstractAction(" CSV ") {
-
+        JButton csvImportButton = new JButton();
+        csvImportButton.setAction(new AbstractAction(" Import CSV ") {
             @Override
             public void actionPerformed(ActionEvent ae) {
-                csv();
+                csvImport();
             }
         });
-        toolBar.add(csvButton);
+        toolBar.add(csvImportButton);
+
+        JButton csvExportButton = new JButton();
+        csvExportButton.setAction(new AbstractAction(" Export CSV ") {
+            @Override
+            public void actionPerformed(ActionEvent ae) {
+                csvExport();
+            }
+        });
+        toolBar.add(csvExportButton);
 
         JLabel nLabel = new JLabel("n:");
         toolBar.add(nLabel);
@@ -76,7 +88,6 @@ public class EKmeansTest {
 
         JButton randomButton = new JButton();
         randomButton.setAction(new AbstractAction(" Random ") {
-
             @Override
             public void actionPerformed(ActionEvent ae) {
                 random();
@@ -104,7 +115,6 @@ public class EKmeansTest {
 
         JButton runButton = new JButton();
         runButton.setAction(new AbstractAction(" Start ") {
-
             @Override
             public void actionPerformed(ActionEvent ae) {
                 start();
@@ -113,7 +123,6 @@ public class EKmeansTest {
         toolBar.add(runButton);
 
         canvaPanel = new JPanel() {
-
             @Override
             public void paint(Graphics g) {
                 EKmeansTest.this.paint(g, getWidth(), getHeight());
@@ -134,7 +143,7 @@ public class EKmeansTest {
         }
     }
 
-    private void csv() {
+    private void csvImport() {
         enableToolBar(false);
         eKmeans = null;
         try {
@@ -180,6 +189,33 @@ public class EKmeansTest {
         }
     }
 
+    private void csvExport() {
+        if (eKmeans == null) {
+            return;
+        }
+        enableToolBar(false);
+        try {
+            JFileChooser chooser = new JFileChooser();
+            int returnVal = chooser.showSaveDialog(toolBar);
+            if (returnVal != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+            PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(chooser.getSelectedFile())));
+            double[][] points = eKmeans.getPoints();
+            int[] assignments = eKmeans.getAssignments();
+            for (int i = 0; i < points.length; i++) {
+                writer.printf(Locale.ENGLISH, "%f,%f,%d%n", points[i][0], points[i][1], assignments[i]);
+            }
+            writer.flush();
+            writer.close();
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        } finally {
+            canvaPanel.repaint();
+            enableToolBar(true);
+        }
+    }
+
     private void random() {
         enableToolBar(false);
         eKmeans = null;
@@ -214,7 +250,6 @@ public class EKmeansTest {
             random();
         }
         new Thread(new Runnable() {
-
             @Override
             public void run() {
                 enableToolBar(false);
@@ -240,7 +275,6 @@ public class EKmeansTest {
         eKmeans.setEqual(equal);
         if (debug > 0) {
             eKmeans.setListener(new EKmeans.Listener() {
-
                 @Override
                 public void iteration(int iteration, int move) {
                     statusBar.setText(MessageFormat.format("iteration {0} move {1}", iteration, move));
