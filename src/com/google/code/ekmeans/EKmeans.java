@@ -150,9 +150,13 @@ public class EKmeans {
         int move = makeAssignments();
         int i = 0;
         while (move > 0 && i++ < iteration) {
+            if (points.length >= centroids.length) {
+                calculateDistances();
+                move = fillEmptyCentroids();
+            }
             moveCentroids();
             calculateDistances();
-            move = makeAssignments();
+            move += makeAssignments();
             if (listener != null) {
                 listener.iteration(i, move);
             }
@@ -249,6 +253,53 @@ public class EKmeans {
             }
         }
         return nc;
+    }
+
+    protected int nearestPoint(int inc, int fromc) {
+        double md = Double.MAX_VALUE;
+        int np = -1;
+        for (int p = 0; p < points.length; p++) {
+            if (assignments[p] != inc) {
+                continue;
+            }
+            double d = distances[fromc][p];
+            if (d < md) {
+                md = d;
+                np = p;
+            }
+        }
+        return np;
+    }
+
+    protected int largestCentroid(int except) {
+        int lc = -1;
+        int mc = 0;
+        for (int c = 0; c < centroids.length; c++) {
+            if (c == except) {
+                continue;
+            }
+            if (counts[c] > mc) {
+                lc = c;
+            }
+        }
+        return lc;
+    }
+
+    protected int fillEmptyCentroids() {
+        int move = 0;
+        for (int c = 0; c < centroids.length; c++) {
+            if (counts[c] == 0) {
+                int lc = largestCentroid(c);
+                int np = nearestPoint(lc, c);
+                assignments[np] = c;
+                counts[c]++;
+                counts[lc]--;
+                changes[c] = true;
+                changes[lc] = true;
+                move++;
+            }
+        }
+        return move;
     }
 
     protected void moveCentroids() {
