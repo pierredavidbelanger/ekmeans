@@ -1,7 +1,7 @@
 #summary One-sentence summary of this page.
-#labels Featured
 
 = Downloads =
 
 Google Code [https://code.google.com/p/support/wiki/DownloadsFAQ do not supports downloads anymore].
+
 Downloads are now available [https://drive.google.com/folderview?id=0BzIhnE1b_Kw7a1RET0Mwck90WUk&usp=drive_web here on Google Drive].
