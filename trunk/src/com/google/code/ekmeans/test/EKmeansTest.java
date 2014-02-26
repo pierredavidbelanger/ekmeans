@@ -47,6 +47,7 @@ public class EKmeansTest {
     private double[][] points = null;
     private double[][] minmaxs = null;
     private EKmeans eKmeans = null;
+    private String[] labels = null;
 
     public EKmeansTest() {
         JFrame frame = new JFrame();
@@ -146,6 +147,7 @@ public class EKmeansTest {
     private void csvImport() {
         enableToolBar(false);
         eKmeans = null;
+        labels = null;
         try {
             JFileChooser chooser = new JFileChooser();
             int returnVal = chooser.showOpenDialog(toolBar);
@@ -157,6 +159,7 @@ public class EKmeansTest {
                 {Double.MIN_VALUE, Double.MIN_VALUE}
             };
             java.util.List points = new ArrayList();
+            java.util.List labels = new ArrayList();
             BufferedReader reader = new BufferedReader(new FileReader(chooser.getSelectedFile()));
             String line;
             while ((line = reader.readLine()) != null) {
@@ -165,6 +168,10 @@ public class EKmeansTest {
                 point[0] = Double.parseDouble(pointString[0].trim());
                 point[1] = Double.parseDouble(pointString[1].trim());
                 points.add(point);
+                if (pointString.length > 2) {
+                    String label = pointString[2].trim();
+                    labels.add(label);
+                }
                 if (point[0] < minmaxs[0][0]) {
                     minmaxs[0][0] = point[0];
                 }
@@ -181,6 +188,7 @@ public class EKmeansTest {
             reader.close();
             this.points = (double[][]) points.toArray(new double[points.size()][]);
             nTextField.setText(String.valueOf(this.points.length));
+            this.labels = (String[]) labels.toArray(new String[labels.size()]);
         } catch (Exception e) {
             e.printStackTrace(System.err);
         } finally {
@@ -203,8 +211,14 @@ public class EKmeansTest {
             PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(chooser.getSelectedFile())));
             double[][] points = eKmeans.getPoints();
             int[] assignments = eKmeans.getAssignments();
-            for (int i = 0; i < points.length; i++) {
-                writer.printf(Locale.ENGLISH, "%f,%f,%d%n", points[i][0], points[i][1], assignments[i]);
+            if (labels != null) {
+                for (int i = 0; i < points.length; i++) {
+                    writer.printf(Locale.ENGLISH, "%f,%f,%s,%d%n", points[i][0], points[i][1], labels[i] != null ? labels[i] : "", assignments[i]);
+                }
+            } else {
+                for (int i = 0; i < points.length; i++) {
+                    writer.printf(Locale.ENGLISH, "%f,%f,%d%n", points[i][0], points[i][1], assignments[i]);
+                }
             }
             writer.flush();
             writer.close();
@@ -219,6 +233,7 @@ public class EKmeansTest {
     private void random() {
         enableToolBar(false);
         eKmeans = null;
+        labels = null;
         int n = Integer.parseInt(nTextField.getText());
         points = new double[n][2];
         minmaxs = new double[][]{
