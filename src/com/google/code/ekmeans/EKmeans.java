@@ -151,8 +151,8 @@ public class EKmeans {
         int i = 0;
         while (move > 0 && i++ < iteration) {
             if (points.length >= centroids.length) {
-                calculateDistances();
                 move = fillEmptyCentroids();
+//                calculateDistances();
             }
             moveCentroids();
             calculateDistances();
