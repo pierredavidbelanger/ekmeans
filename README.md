@@ -30,29 +30,40 @@ When you are ready and have a working solution, send me the svn diff file.
 
 How to create a svn diff file: in the root of the ekmeans project execute svn diff and send the output to a file:
 
+```bash
 $ svn diff > changes.diff
+```
+
 If you are willing enough, I can add you to the committers, so you can freely commit to this project.
 
 ## Quick start (demo)
 Download the latest compiled version, and run the demo by double-clicking the jar file or by running it in a terminal with
 
+```bash
 $ java -jar ekmeans.jar
+```
+
 The demo supports importing data from a CSV file. Each line terminated by a new line, must have at least two values (dimensions) separated by a comma. The first two values will be used, they must be parsable Java double.
 
 Example:
 
+```csv
 1.52792,42.50525,MCDONALD'S (MCDRIVE),AD500 ANDORRA LA VELLA
 3.9522,50.45396,MCDONALD'S,7000 MONS
 4.00676,50.83615,MCDONALD'S (MCDRIVE),9400 NINOVE
+```
+
 You can view and download this example file.
 
 The demo also supports exporting data to a CSV file. Lines in the exported CSV file will be in the same order as in the imported CSV file. Each line will be identical to the imported CSV file except for the first column, it will be the cluster index (so 0 means the first cluster).
 
 Example:
 
+```csv
 2,1.52792,42.50525,MCDONALD'S (MCDRIVE),AD500 ANDORRA LA VELLA
 0,3.9522,50.45396,MCDONALD'S,7000 MONS
 0,4.00676,50.83615,MCDONALD'S (MCDRIVE),9400 NINOVE
+```
 
 ## Integration
 
