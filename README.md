@@ -22,19 +22,9 @@ So I decided to take a look at the problem myself. I took a fairly simple and fa
 The equal option is somewhat experimental. You should know that, when this option is enabled, the algorithm do its best, in a reasonable time, to respect the equal cardinality constraint, but can sometime produce clusters that are not as spatially cohesive as the original K-means algorithm (keep in mind that this is a NP-hard problem). See issue 1. Please let me know if you want to contribute your great idea to fix this bug.
 
 ## Help
-You want to help? Especially with the issue 1? Please checkout the code and open the project with NetBeans, the project files are included in the repository.
+You want to help? Especially with the [issue 1](https://github.com/pierredavidbelanger/ekmeans/issues/1)?
 
-Make some changes. Do not forget to add your name into the 'Contributor(s)' comment section of the files you edit :)
-
-When you are ready and have a working solution, send me the svn diff file.
-
-How to create a svn diff file: in the root of the ekmeans project execute svn diff and send the output to a file:
-
-```bash
-$ svn diff > changes.diff
-```
-
-If you are willing enough, I can add you to the committers, so you can freely commit to this project.
+Go ahead, clone and make some changes. Do not forget to add your name into the 'Contributor(s)' comment section of the files you edit :)
 
 ## Quick start (demo)
 Download the latest compiled version, and run the demo by double-clicking the jar file or by running it in a terminal with
@@ -66,6 +56,17 @@ Example:
 ```
 
 ## Integration
+
+Add the library to your pom.xml:
+
+```xml
+<dependency>
+    <groupId>ca.pjer</groupId>
+    <artifactId>ekmeans</artifactId>
+    <version>2.0.0</version>
+    <scope>compile</scope>
+</dependency>
+```
 
 Initialisation.
 

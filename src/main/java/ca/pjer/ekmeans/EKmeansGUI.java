@@ -17,23 +17,18 @@
  * 
  * Contributor(s): Pierre-David Belanger <pierredavidbelanger@gmail.com>
  */
-package com.google.code.ekmeans.test;
+package ca.pjer.ekmeans;
 
-import com.google.code.ekmeans.EKmeans;
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.PrintWriter;
+import java.io.*;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Random;
-import javax.swing.*;
 
-public class EKmeansTest {
+public class EKmeansGUI {
 
     private static final int RESOLUTION = 300;
     private static final Random RANDOM = new Random(System.currentTimeMillis());
@@ -49,7 +44,7 @@ public class EKmeansTest {
     private EKmeans eKmeans = null;
     private String[] lines = null;
 
-    public EKmeansTest() {
+    public EKmeansGUI() {
         JFrame frame = new JFrame();
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setMinimumSize(new Dimension(RESOLUTION + 100, RESOLUTION + 100));
@@ -65,7 +60,6 @@ public class EKmeansTest {
 
         JButton csvImportButton = new JButton();
         csvImportButton.setAction(new AbstractAction(" Import CSV ") {
-            @Override
             public void actionPerformed(ActionEvent ae) {
                 csvImport();
             }
@@ -74,7 +68,6 @@ public class EKmeansTest {
 
         JButton csvExportButton = new JButton();
         csvExportButton.setAction(new AbstractAction(" Export CSV ") {
-            @Override
             public void actionPerformed(ActionEvent ae) {
                 csvExport();
             }
@@ -89,7 +82,6 @@ public class EKmeansTest {
 
         JButton randomButton = new JButton();
         randomButton.setAction(new AbstractAction(" Random ") {
-            @Override
             public void actionPerformed(ActionEvent ae) {
                 random();
             }
@@ -116,7 +108,6 @@ public class EKmeansTest {
 
         JButton runButton = new JButton();
         runButton.setAction(new AbstractAction(" Start ") {
-            @Override
             public void actionPerformed(ActionEvent ae) {
                 start();
             }
@@ -126,7 +117,7 @@ public class EKmeansTest {
         canvaPanel = new JPanel() {
             @Override
             public void paint(Graphics g) {
-                EKmeansTest.this.paint(g, getWidth(), getHeight());
+                EKmeansGUI.this.paint(g, getWidth(), getHeight());
             }
         };
         contentPanel.add(canvaPanel, BorderLayout.CENTER);
@@ -262,11 +253,10 @@ public class EKmeansTest {
             random();
         }
         new Thread(new Runnable() {
-            @Override
             public void run() {
                 enableToolBar(false);
                 try {
-                    EKmeansTest.this.run();
+                    EKmeansGUI.this.run();
                 } finally {
                     enableToolBar(true);
                 }
@@ -287,7 +277,6 @@ public class EKmeansTest {
         eKmeans.setEqual(equal);
         if (debug > 0) {
             eKmeans.setListener(new EKmeans.Listener() {
-                @Override
                 public void iteration(int iteration, int move) {
                     statusBar.setText(MessageFormat.format("iteration {0} move {1}", iteration, move));
                     canvaPanel.repaint();
@@ -355,6 +344,6 @@ public class EKmeansTest {
     }
 
     public static void main(String[] args) {
-        new EKmeansTest();
+        new EKmeansGUI();
     }
 }

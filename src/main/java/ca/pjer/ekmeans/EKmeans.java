@@ -17,24 +17,23 @@
  * 
  * Contributor(s): Pierre-David Belanger <pierredavidbelanger@gmail.com>
  */
-package com.google.code.ekmeans;
+package ca.pjer.ekmeans;
 
 import java.util.Arrays;
 
 public class EKmeans {
 
-    public static interface Listener {
+    public interface Listener {
 
         void iteration(int iteration, int move);
     }
 
-    public static interface DistanceFunction {
+    public interface DistanceFunction {
 
         double distance(double[] p1, double[] p2);
     }
     public static final DistanceFunction EUCLIDEAN_DISTANCE_FUNCTION = new DistanceFunction() {
 
-        @Override
         public double distance(double[] p1, double[] p2) {
             double s = 0;
             for (int d = 0; d < p1.length; d++) {
@@ -46,7 +45,6 @@ public class EKmeans {
     };
     public static final DistanceFunction MANHATTAN_DISTANCE_FUNCTION = new DistanceFunction() {
 
-        @Override
         public double distance(double[] p1, double[] p2) {
             double s = 0;
             for (int d = 0; d < p1.length; d++) {
