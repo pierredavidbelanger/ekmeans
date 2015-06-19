@@ -27,7 +27,7 @@ You want to help? Especially with the [issue 1](https://github.com/pierredavidbe
 Go ahead, clone and make some changes. Do not forget to add your name into the 'Contributor(s)' comment section of the files you edit :)
 
 ## Quick start (demo)
-Download the latest compiled version, and run the demo by double-clicking the jar file or by running it in a terminal with
+Download the [latest compiled version](http://repo1.maven.org/maven2/ca/pjer/ekmeans/), and run the demo by double-clicking the jar file or by running it in a terminal with
 
 ```bash
 $ java -jar ekmeans.jar
