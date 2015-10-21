@@ -30,6 +30,21 @@ import java.util.Random;
 
 public class EKmeansGUI {
 
+    private class DoubleEKmeansExt extends DoubleEKmeans {
+
+        public DoubleEKmeansExt(double[][] centroids, double[][] points, boolean equal, DoubleDistanceFunction doubleDistanceFunction, Listener listener) {
+            super(centroids, points, equal, doubleDistanceFunction, listener);
+        }
+
+        public int[] getAssignments() {
+            return assignments;
+        }
+
+        public int[] getCounts() {
+            return counts;
+        }
+    }
+
     private static final int RESOLUTION = 300;
     private static final Random RANDOM = new Random(System.currentTimeMillis());
     private JToolBar toolBar;
@@ -39,9 +54,10 @@ public class EKmeansGUI {
     private JTextField debugTextField;
     private JPanel canvaPanel;
     private JLabel statusBar;
+    private double[][] centroids = null;
     private double[][] points = null;
     private double[][] minmaxs = null;
-    private EKmeans eKmeans = null;
+    private DoubleEKmeansExt eKmeans = null;
     private String[] lines = null;
 
     public EKmeansGUI() {
@@ -197,7 +213,7 @@ public class EKmeansGUI {
                 return;
             }
             PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(chooser.getSelectedFile())));
-            double[][] points = eKmeans.getPoints();
+            double[][] points = this.points;
             int[] assignments = eKmeans.getAssignments();
             if (lines != null) {
                 for (int i = 0; i < points.length; i++) {
@@ -267,16 +283,20 @@ public class EKmeansGUI {
     private void run() {
         int k = Integer.parseInt(kTextField.getText());
         boolean equal = equalCheckBox.isSelected();
-        final int debug = Integer.parseInt(debugTextField.getText());
-        double[][] centroids = new double[k][2];
+        int debugTmp = 0;
+        try {
+            debugTmp = Integer.parseInt(debugTextField.getText());
+        } catch (NumberFormatException ignore) {
+        }
+        final int debug = debugTmp;
+        centroids = new double[k][2];
         for (int i = 0; i < k; i++) {
             centroids[i][0] = minmaxs[0][0] + ((minmaxs[1][0] - minmaxs[0][0]) * RANDOM.nextDouble());
             centroids[i][1] = minmaxs[0][1] + ((minmaxs[1][1] - minmaxs[0][1]) * RANDOM.nextDouble());
         }
-        eKmeans = new EKmeans(centroids, points);
-        eKmeans.setEqual(equal);
+        AbstractEKmeans.Listener listener = null;
         if (debug > 0) {
-            eKmeans.setListener(new EKmeans.Listener() {
+            listener = new AbstractEKmeans.Listener() {
                 public void iteration(int iteration, int move) {
                     statusBar.setText(MessageFormat.format("iteration {0} move {1}", iteration, move));
                     canvaPanel.repaint();
@@ -286,8 +306,9 @@ public class EKmeansGUI {
                         e.printStackTrace(System.err);
                     }
                 }
-            });
+            };
         }
+        eKmeans = new DoubleEKmeansExt(centroids, points, equal, DoubleEKmeans.EUCLIDEAN_DISTANCE_FUNCTION, listener);
         long time = System.currentTimeMillis();
         eKmeans.run();
         time = System.currentTimeMillis() - time;
@@ -315,7 +336,6 @@ public class EKmeansGUI {
         if (eKmeans == null) {
             return;
         }
-        double[][] centroids = eKmeans.getCentroids();
         int[] assignments = eKmeans.getAssignments();
         int[] counts = eKmeans.getCounts();
         int s = 225 / centroids.length;

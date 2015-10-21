@@ -21,54 +21,45 @@ package ca.pjer.ekmeans;
 
 import java.util.Arrays;
 
-public class EKmeans {
+public class AbstractEKmeans<Centroid, Point> {
 
     public interface Listener {
 
         void iteration(int iteration, int move);
+
     }
 
-    public interface DistanceFunction {
+    public interface DistanceFunction<Centroid, Point> {
 
-        double distance(double[] p1, double[] p2);
+        void distance(boolean[] changed, double[][] distances, Centroid[] centroids, Point[] points);
+
     }
-    public static final DistanceFunction EUCLIDEAN_DISTANCE_FUNCTION = new DistanceFunction() {
 
-        public double distance(double[] p1, double[] p2) {
-            double s = 0;
-            for (int d = 0; d < p1.length; d++) {
-                s += Math.pow(Math.abs(p1[d] - p2[d]), 2);
-            }
-            double d = Math.sqrt(s);
-            return d;
-        }
-    };
-    public static final DistanceFunction MANHATTAN_DISTANCE_FUNCTION = new DistanceFunction() {
+    public interface CenterFunction<Centroid, Point> {
 
-        public double distance(double[] p1, double[] p2) {
-            double s = 0;
-            for (int d = 0; d < p1.length; d++) {
-                s += Math.abs(p1[d] - p2[d]);
-            }
-            return s;
-        }
-    };
-    protected double[][] centroids;
-    protected double[][] points;
-    protected int idealCount;
-    protected double[][] distances;
-    protected int[] assignments;
-    protected boolean[] changes;
-    protected int[] counts;
-    protected boolean[] dones;
-    protected int iteration;
-    protected boolean equal;
-    protected DistanceFunction distanceFunction;
-    protected Listener listener;
+        void center(boolean[] changed, int[] assignments, Centroid[] centroids, Point[] points);
 
-    public EKmeans(double[][] centroids, double[][] points) {
+    }
+
+    protected final Centroid[] centroids;
+    protected final Point[] points;
+    protected final boolean equal;
+    protected final DistanceFunction<Centroid, Point> distanceFunction;
+    protected final CenterFunction<Centroid, Point> centerFunction;
+    protected final Listener listener;
+
+    protected final int idealCount;
+    protected final double[][] distances;
+    protected final int[] assignments;
+    protected final boolean[] changed;
+    protected final int[] counts;
+    protected final boolean[] done;
+
+    public AbstractEKmeans(Centroid[] centroids, Point[] points, boolean equal, DistanceFunction<Centroid, Point> distanceFunction, CenterFunction<Centroid, Point> centerFunction, Listener listener) {
         this.centroids = centroids;
         this.points = points;
+        this.distanceFunction = distanceFunction;
+        this.centerFunction = centerFunction;
         if (centroids.length > 0) {
             idealCount = points.length / centroids.length;
         } else {
@@ -77,80 +68,25 @@ public class EKmeans {
         distances = new double[centroids.length][points.length];
         assignments = new int[points.length];
         Arrays.fill(assignments, -1);
-        changes = new boolean[centroids.length];
-        Arrays.fill(changes, true);
+        changed = new boolean[centroids.length];
+        Arrays.fill(changed, true);
         counts = new int[centroids.length];
-        dones = new boolean[centroids.length];
-        iteration = 128;
-        equal = false;
-        distanceFunction = EUCLIDEAN_DISTANCE_FUNCTION;
-        listener = null;
-    }
-
-    public double[][] getCentroids() {
-        return centroids;
-    }
-
-    public double[][] getPoints() {
-        return points;
-    }
-
-    public double[][] getDistances() {
-        return distances;
-    }
-
-    public int[] getAssignments() {
-        return assignments;
-    }
-
-    public boolean[] getChanges() {
-        return changes;
-    }
-
-    public int[] getCounts() {
-        return counts;
-    }
-
-    public int getIteration() {
-        return iteration;
-    }
-
-    public void setIteration(int iteration) {
-        this.iteration = iteration;
-    }
-
-    public boolean isEqual() {
-        return equal;
-    }
-
-    public void setEqual(boolean equal) {
+        done = new boolean[centroids.length];
         this.equal = equal;
-    }
-
-    public DistanceFunction getDistanceFunction() {
-        return distanceFunction;
-    }
-
-    public void setDistanceFunction(DistanceFunction distanceFunction) {
-        this.distanceFunction = distanceFunction;
-    }
-
-    public Listener getListener() {
-        return listener;
-    }
-
-    public void setListener(Listener listener) {
         this.listener = listener;
     }
 
-    public void run() {
+    public int[] run() {
+        return run(128);
+    }
+
+    public int[] run(int iteration) {
         calculateDistances();
         int move = makeAssignments();
         int i = 0;
         while (move > 0 && i++ < iteration) {
             if (points.length >= centroids.length) {
                 move = fillEmptyCentroids();
-//                calculateDistances();
             }
             moveCentroids();
             calculateDistances();
@@ -159,20 +95,12 @@ public class EKmeans {
                 listener.iteration(i, move);
             }
         }
+        return assignments;
     }
 
     protected void calculateDistances() {
-        for (int c = 0; c < centroids.length; c++) {
-            if (!changes[c]) {
-                continue;
-            }
-            double[] centroid = centroids[c];
-            for (int p = 0; p < points.length; p++) {
-                double[] point = points[p];
-                distances[c][p] = distanceFunction.distance(centroid, point);
-            }
-            changes[c] = false;
-        }
+        distanceFunction.distance(changed, distances, centroids, points);
+        Arrays.fill(changed, false);
     }
 
     protected int makeAssignments() {
@@ -185,9 +113,9 @@ public class EKmeans {
             }
             if (assignments[p] != nc) {
                 if (assignments[p] != -1) {
-                    changes[assignments[p]] = true;
+                    changed[assignments[p]] = true;
                 }
-                changes[nc] = true;
+                changed[nc] = true;
                 assignments[p] = nc;
                 move++;
             }
@@ -209,7 +137,7 @@ public class EKmeans {
                 continue;
             }
             for (int c = 0; c < centroids.length; c++) {
-                if (c == cc || dones[c]) {
+                if (c == cc || done[c]) {
                     continue;
                 }
                 double d = distances[c][p];
@@ -223,18 +151,18 @@ public class EKmeans {
         if (nc != -1 && np != -1) {
             if (assignments[np] != nc) {
                 if (assignments[np] != -1) {
-                    changes[assignments[np]] = true;
+                    changed[assignments[np]] = true;
                 }
-                changes[nc] = true;
+                changed[nc] = true;
                 assignments[np] = nc;
                 move++;
             }
             counts[cc]--;
             counts[nc]++;
             if (counts[nc] > idealCount) {
-                dones[cc] = true;
+                done[cc] = true;
                 move += remakeAssignments(nc);
-                dones[cc] = false;
+                done[cc] = false;
             }
         }
         return move;
@@ -292,8 +220,8 @@ public class EKmeans {
                 assignments[np] = c;
                 counts[c]++;
                 counts[lc]--;
-                changes[c] = true;
-                changes[lc] = true;
+                changed[c] = true;
+                changed[lc] = true;
                 move++;
             }
         }
@@ -301,28 +229,6 @@ public class EKmeans {
     }
 
     protected void moveCentroids() {
-        for (int c = 0; c < centroids.length; c++) {
-            if (!changes[c]) {
-                continue;
-            }
-            double[] centroid = centroids[c];
-            int n = 0;
-            Arrays.fill(centroid, 0);
-            for (int p = 0; p < points.length; p++) {
-                if (assignments[p] != c) {
-                    continue;
-                }
-                double[] point = points[p];
-                n++;
-                for (int d = 0; d < centroid.length; d++) {
-                    centroid[d] += point[d];
-                }
-            }
-            if (n > 0) {
-                for (int d = 0; d < centroid.length; d++) {
-                    centroid[d] /= n;
-                }
-            }
-        }
+        centerFunction.center(changed, assignments, centroids, points);
     }
 }

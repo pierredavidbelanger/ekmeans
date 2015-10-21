@@ -7,7 +7,7 @@
 
     <groupId>ca.pjer</groupId>
     <artifactId>ekmeans</artifactId>
-    <version>2.0.0</version>
+    <version>3.0.0</version>
 
     <name>E K-means</name>
     <description>
@@ -54,6 +54,15 @@
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
         </repository>
     </distributionManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
