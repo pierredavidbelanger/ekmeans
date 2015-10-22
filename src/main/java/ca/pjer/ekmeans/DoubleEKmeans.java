@@ -1,5 +1,7 @@
 package ca.pjer.ekmeans;
 
+import java.util.Arrays;
+
 public class DoubleEKmeans extends AbstractEKmeans<double[], double[]> {
 
     public interface DoubleDistanceFunction {
@@ -60,10 +62,10 @@ public class DoubleEKmeans extends AbstractEKmeans<double[], double[]> {
                 for (int p = 0; p < points.length; p++) {
                     if (assignments[p] != c) continue;
                     double[] point = points[p];
+                    if (n++ == 0) Arrays.fill(centroid, 0d);
                     for (int d = 0; d < centroid.length && d < point.length; d++) {
                         centroid[d] += point[d];
                     }
-                    n++;
                 }
                 if (n > 0) {
                     for (int d = 0; d < centroid.length; d++) {

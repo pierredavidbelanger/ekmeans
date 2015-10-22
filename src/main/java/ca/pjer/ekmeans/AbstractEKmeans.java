@@ -129,7 +129,7 @@ public class AbstractEKmeans<Centroid, Point> {
 
     protected int remakeAssignments(int cc) {
         int move = 0;
-        double md = Double.MAX_VALUE;
+        double md = Double.POSITIVE_INFINITY;
         int nc = -1;
         int np = -1;
         for (int p = 0; p < points.length; p++) {
@@ -169,7 +169,7 @@ public class AbstractEKmeans<Centroid, Point> {
     }
 
     protected int nearestCentroid(int p) {
-        double md = Double.MAX_VALUE;
+        double md = Double.POSITIVE_INFINITY;
         int nc = -1;
         for (int c = 0; c < centroids.length; c++) {
             double d = distances[c][p];
@@ -182,7 +182,7 @@ public class AbstractEKmeans<Centroid, Point> {
     }
 
     protected int nearestPoint(int inc, int fromc) {
-        double md = Double.MAX_VALUE;
+        double md = Double.POSITIVE_INFINITY;
         int np = -1;
         for (int p = 0; p < points.length; p++) {
             if (assignments[p] != inc) {

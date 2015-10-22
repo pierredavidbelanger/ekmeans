@@ -23,6 +23,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -45,6 +47,13 @@ public class EKmeansGUI {
         }
     }
 
+    private static final int MIN = 0;
+    private static final int MAX = 1;
+    private static final int LEN = 2;
+
+    private static final int X = 0;
+    private static final int Y = 1;
+
     private static final int RESOLUTION = 300;
     private static final Random RANDOM = new Random(System.currentTimeMillis());
     private JToolBar toolBar;
@@ -56,7 +65,7 @@ public class EKmeansGUI {
     private JLabel statusBar;
     private double[][] centroids = null;
     private double[][] points = null;
-    private double[][] minmaxs = null;
+    private double[][] minmaxlens = null;
     private DoubleEKmeansExt eKmeans = null;
     private String[] lines = null;
 
@@ -161,9 +170,10 @@ public class EKmeansGUI {
             if (returnVal != JFileChooser.APPROVE_OPTION) {
                 return;
             }
-            minmaxs = new double[][]{
-                {Double.MAX_VALUE, Double.MAX_VALUE},
-                {Double.MIN_VALUE, Double.MIN_VALUE}
+            minmaxlens = new double[][]{
+                {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},
+                {Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY},
+                {0d, 0d}
             };
             java.util.List points = new ArrayList();
             java.util.List lines = new ArrayList();
@@ -173,22 +183,25 @@ public class EKmeansGUI {
                 lines.add(line);
                 String[] pointString = line.split(",");
                 double[] point = new double[2];
-                point[0] = Double.parseDouble(pointString[0].trim());
-                point[1] = Double.parseDouble(pointString[1].trim());
+                point[X] = Double.parseDouble(pointString[X].trim());
+                point[Y] = Double.parseDouble(pointString[Y].trim());
+                System.out.println(point[X] + ", " + point[Y]);
                 points.add(point);
-                if (point[0] < minmaxs[0][0]) {
-                    minmaxs[0][0] = point[0];
+                if (point[X] < minmaxlens[MIN][X]) {
+                    minmaxlens[MIN][X] = point[X];
                 }
-                if (point[1] < minmaxs[0][1]) {
-                    minmaxs[0][1] = point[1];
+                if (point[Y] < minmaxlens[MIN][Y]) {
+                    minmaxlens[MIN][Y] = point[Y];
                 }
-                if (point[0] > minmaxs[1][0]) {
-                    minmaxs[1][0] = point[0];
+                if (point[X] > minmaxlens[MAX][X]) {
+                    minmaxlens[MAX][X] = point[X];
                 }
-                if (point[1] > minmaxs[1][1]) {
-                    minmaxs[1][1] = point[1];
+                if (point[Y] > minmaxlens[MAX][Y]) {
+                    minmaxlens[MAX][Y] = point[Y];
                 }
             }
+            minmaxlens[LEN][X] = minmaxlens[MAX][X] - minmaxlens[MIN][X];
+            minmaxlens[LEN][Y] = minmaxlens[MAX][Y] - minmaxlens[MIN][Y];
             reader.close();
             this.points = (double[][]) points.toArray(new double[points.size()][]);
             nTextField.setText(String.valueOf(this.points.length));
@@ -221,7 +234,7 @@ public class EKmeansGUI {
                 }
             } else {
                 for (int i = 0; i < points.length; i++) {
-                    writer.printf(Locale.ENGLISH, "%d,%f,%f%n", assignments[i], points[i][0], points[i][1]);
+                    writer.printf(Locale.ENGLISH, "%d,%f,%f%n", assignments[i], points[i][X], points[i][Y]);
                 }
             }
             writer.flush();
@@ -240,26 +253,29 @@ public class EKmeansGUI {
         lines = null;
         int n = Integer.parseInt(nTextField.getText());
         points = new double[n][2];
-        minmaxs = new double[][]{
-            {Double.MAX_VALUE, Double.MAX_VALUE},
-            {Double.MIN_VALUE, Double.MIN_VALUE}
+        minmaxlens = new double[][]{
+            {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY},
+            {Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY},
+            {0d, 0d}
         };
         for (int i = 0; i < n; i++) {
-            points[i][0] = RANDOM.nextDouble();
-            points[i][1] = RANDOM.nextDouble();
-            if (points[i][0] < minmaxs[0][0]) {
-                minmaxs[0][0] = points[i][0];
+            points[i][X] = RANDOM.nextDouble();
+            points[i][Y] = RANDOM.nextDouble();
+            if (points[i][X] < minmaxlens[MIN][X]) {
+                minmaxlens[MIN][X] = points[i][X];
             }
-            if (points[i][1] < minmaxs[0][1]) {
-                minmaxs[0][1] = points[i][1];
+            if (points[i][Y] < minmaxlens[MIN][Y]) {
+                minmaxlens[MIN][Y] = points[i][Y];
             }
-            if (points[i][0] > minmaxs[1][0]) {
-                minmaxs[1][0] = points[i][0];
+            if (points[i][X] > minmaxlens[MAX][X]) {
+                minmaxlens[MAX][X] = points[i][X];
             }
-            if (points[i][1] > minmaxs[1][1]) {
-                minmaxs[1][1] = points[i][1];
+            if (points[i][Y] > minmaxlens[MAX][Y]) {
+                minmaxlens[MAX][Y] = points[i][Y];
             }
         }
+        minmaxlens[LEN][X] = minmaxlens[MAX][X] - minmaxlens[MIN][X];
+        minmaxlens[LEN][Y] = minmaxlens[MAX][Y] - minmaxlens[MIN][Y];
         canvaPanel.repaint();
         enableToolBar(true);
     }
@@ -281,6 +297,12 @@ public class EKmeansGUI {
     }
 
     private void run() {
+        try {
+            URL url = new URL("http://staticmap.openstreetmap.de/staticmap.php?center=" + (minmaxlens[MIN][X] + (minmaxlens[LEN][X] / 2d)) + "," + (minmaxlens[MIN][Y] + (minmaxlens[LEN][Y] / 2d)) + "&zoom=14&size=" +  canvaPanel.getWidth() + "x" + canvaPanel.getHeight() + "&maptype=mapnik");
+            System.out.println("url:" + url);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
         int k = Integer.parseInt(kTextField.getText());
         boolean equal = equalCheckBox.isSelected();
         int debugTmp = 0;
@@ -291,8 +313,10 @@ public class EKmeansGUI {
         final int debug = debugTmp;
         centroids = new double[k][2];
         for (int i = 0; i < k; i++) {
-            centroids[i][0] = minmaxs[0][0] + ((minmaxs[1][0] - minmaxs[0][0]) * RANDOM.nextDouble());
-            centroids[i][1] = minmaxs[0][1] + ((minmaxs[1][1] - minmaxs[0][1]) * RANDOM.nextDouble());
+//            centroids[i][X] = minmaxlens[MIN][X] + (minmaxlens[LEN][X] * RANDOM.nextDouble());
+//            centroids[i][Y] = minmaxlens[MIN][Y] + (minmaxlens[LEN][Y] * RANDOM.nextDouble());
+            centroids[i][X] = minmaxlens[MIN][X] + (minmaxlens[LEN][X] / 2d);
+            centroids[i][Y] = minmaxlens[MIN][Y] + (minmaxlens[LEN][Y] / 2d);
         }
         AbstractEKmeans.Listener listener = null;
         if (debug > 0) {
@@ -303,7 +327,7 @@ public class EKmeansGUI {
                     try {
                         Thread.sleep(debug);
                     } catch (InterruptedException e) {
-                        e.printStackTrace(System.err);
+                        throw new RuntimeException(e);
                     }
                 }
             };
@@ -319,18 +343,18 @@ public class EKmeansGUI {
     private void paint(Graphics g, int width, int height) {
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, width, height);
-        if (minmaxs == null) {
+        if (minmaxlens == null) {
             return;
         }
-        double widthRatio = (double) (width - 6) / (minmaxs[1][0] - minmaxs[0][0]);
-        double heightRatio = (double) (height - 6) / (minmaxs[1][1] - minmaxs[0][1]);
+        double widthRatio = (width - 6d) / minmaxlens[LEN][X];
+        double heightRatio = (height - 6d) / minmaxlens[LEN][Y];
         if (points == null) {
             return;
         }
         g.setColor(Color.BLACK);
         for (int i = 0; i < points.length; i++) {
-            int px = 3 + (int) (widthRatio * (points[i][0] - minmaxs[0][0]));
-            int py = 3 + (int) (heightRatio * (points[i][1] - minmaxs[0][1]));
+            int px = 3 + (int) (widthRatio * (points[i][X] - minmaxlens[MIN][X]));
+            int py = 3 + (int) (heightRatio * (points[i][Y] - minmaxlens[MIN][Y]));
             g.drawRect(px - 2, py - 2, 4, 4);
         }
         if (eKmeans == null) {
@@ -344,18 +368,18 @@ public class EKmeansGUI {
             if (assignment == -1) {
                 continue;
             }
-            int cx = 3 + (int) (widthRatio * (centroids[assignment][0] - minmaxs[0][0]));
-            int cy = 3 + (int) (heightRatio * (centroids[assignment][1] - minmaxs[0][1]));
-            int px = 3 + (int) (widthRatio * (points[i][0] - minmaxs[0][0]));
-            int py = 3 + (int) (heightRatio * (points[i][1] - minmaxs[0][1]));
+            int cx = 3 + (int) (widthRatio * (centroids[assignment][X] - minmaxlens[MIN][X]));
+            int cy = 3 + (int) (heightRatio * (centroids[assignment][Y] - minmaxlens[MIN][Y]));
+            int px = 3 + (int) (widthRatio * (points[i][X] - minmaxlens[MIN][X]));
+            int py = 3 + (int) (heightRatio * (points[i][Y] - minmaxlens[MIN][Y]));
             int c = assignment * s;
             g.setColor(new Color(c, c, c));
             g.drawLine(cx, cy, px, py);
         }
         g.setColor(Color.GREEN);
         for (int i = 0; i < centroids.length; i++) {
-            int cx = 3 + (int) (widthRatio * (centroids[i][0] - minmaxs[0][0]));
-            int cy = 3 + (int) (heightRatio * (centroids[i][1] - minmaxs[0][1]));
+            int cx = 3 + (int) (widthRatio * (centroids[i][X] - minmaxlens[MIN][X]));
+            int cy = 3 + (int) (heightRatio * (centroids[i][Y] - minmaxlens[MIN][Y]));
             g.drawLine(cx, cy - 2, cx, cy + 2);
             g.drawLine(cx - 2, cy, cx + 2, cy);
             int count = counts[i];
