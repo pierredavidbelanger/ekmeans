@@ -32,7 +32,6 @@ public class AbstractEKmeans<Centroid, Point> {
     public interface DistanceFunction<Centroid, Point> {
 
         void distance(boolean[] changed, double[][] distances, Centroid[] centroids, Point[] points);
-
     }
 
     public interface CenterFunction<Centroid, Point> {
@@ -120,7 +119,15 @@ public class AbstractEKmeans<Centroid, Point> {
                 move++;
             }
             counts[nc]++;
-            if (equal && counts[nc] > idealCount) {
+            boolean allFull = true;
+            for (int c = 0;c<centroids.length; c++) {
+            	if(counts[c] < idealCount) {
+            		allFull = false;
+            		break;
+            	}
+            }
+            if (equal && ((!allFull && counts[nc] > idealCount) || (allFull && counts[nc] > idealCount+1))) {
+//            if (equal && counts[nc] > idealCount) {
                 move += remakeAssignments(nc);
             }
         }
@@ -148,26 +155,82 @@ public class AbstractEKmeans<Centroid, Point> {
                 }
             }
         }
+         
         if (nc != -1 && np != -1) {
-            if (assignments[np] != nc) {
-                if (assignments[np] != -1) {
-                    changed[assignments[np]] = true;
-                }
-                changed[nc] = true;
-                assignments[np] = nc;
-                move++;
-            }
-            counts[cc]--;
-            counts[nc]++;
-            if (counts[nc] > idealCount) {
-                done[cc] = true;
-                move += remakeAssignments(nc);
-                done[cc] = false;
-            }
+        	int m = moveBetterCluster(md, nc, cc);
+//        	int m=0;
+        	if(m == 0) {
+        		if (assignments[np] != nc) {
+        			if (assignments[np] != -1) {
+        				changed[assignments[np]] = true;
+        			}
+        			changed[nc] = true;
+        			assignments[np] = nc;
+        			move++;
+        		}
+        		counts[cc]--;
+        		counts[nc]++;
+        		if (counts[nc] > idealCount) {
+        			done[cc] = true;
+        			move += remakeAssignments(nc);
+        			done[cc] = false;
+        		}
+        	} else {
+        		move += m;
+        	}
         }
         return move;
     }
-
+    
+    protected int moveBetterCluster(double d, int nc, int cc) {
+    	int move = 0;
+    	int bc = -1, np1 = -1, np2=-1;
+    	for(int c = 0; c<centroids.length; c++) {
+    		if(c == nc || c == cc || !done[c]) 
+    			continue;
+    		int p1 = minDistance(cc, c);
+    		int p2 = minDistance(c, nc);
+    		if(p1 != -1 && p2 != -1) {
+    			double m1 = distances[c][p1];
+    			double m2 = distances[nc][p2];
+    		
+    			if(m1 + m2 < d) {
+    				bc = c;
+    				d = m1 + m2;
+    				np1 = p1;
+    				np2 = p2;
+    			}
+    		}
+    	}
+    	if(bc != -1) {
+    		assignments[np1] = bc;
+    		assignments[np2] = nc;
+    		move += 2;
+    		counts[cc]--;
+    		counts[nc]++;
+    		if(counts[nc] > idealCount) {
+    			done[cc] = true;
+        		move += remakeAssignments(nc);
+        		done[cc] = false;
+    		}
+    	}
+    	return move;
+    }
+    
+    protected int minDistance(int c1, int c2) {
+    	double md = Double.POSITIVE_INFINITY;
+    	int np = -1;
+    	for (int p =0; p<points.length; p++) {
+    		if(assignments[p] != c1)
+    			continue;
+    		if(distances[c2][p] < md) {
+    			md=distances[c2][p];
+    			np = p;
+    		}
+    	}
+    	return np;
+    }
+    
     protected int nearestCentroid(int p) {
         double md = Double.POSITIVE_INFINITY;
         int nc = -1;
